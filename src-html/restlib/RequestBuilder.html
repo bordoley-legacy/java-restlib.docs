@@ -1,0 +1,388 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>/*<a name="line.1"></a>
+<span class="sourceLineNo">002</span> * Copyright (C) 2012 David Bordoley<a name="line.2"></a>
+<span class="sourceLineNo">003</span> *<a name="line.3"></a>
+<span class="sourceLineNo">004</span> * Licensed under the Apache License, Version 2.0 (the "License");<a name="line.4"></a>
+<span class="sourceLineNo">005</span> * you may not use this file except in compliance with the License.<a name="line.5"></a>
+<span class="sourceLineNo">006</span> * You may obtain a copy of the License at<a name="line.6"></a>
+<span class="sourceLineNo">007</span> *<a name="line.7"></a>
+<span class="sourceLineNo">008</span> * http://www.apache.org/licenses/LICENSE-2.0<a name="line.8"></a>
+<span class="sourceLineNo">009</span> *<a name="line.9"></a>
+<span class="sourceLineNo">010</span> * Unless required by applicable law or agreed to in writing, software<a name="line.10"></a>
+<span class="sourceLineNo">011</span> * distributed under the License is distributed on an "AS IS" BASIS,<a name="line.11"></a>
+<span class="sourceLineNo">012</span> * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<a name="line.12"></a>
+<span class="sourceLineNo">013</span> * See the License for the specific language governing permissions and<a name="line.13"></a>
+<span class="sourceLineNo">014</span> * limitations under the License.<a name="line.14"></a>
+<span class="sourceLineNo">015</span> */<a name="line.15"></a>
+<span class="sourceLineNo">016</span><a name="line.16"></a>
+<span class="sourceLineNo">017</span><a name="line.17"></a>
+<span class="sourceLineNo">018</span>package restlib;<a name="line.18"></a>
+<span class="sourceLineNo">019</span><a name="line.19"></a>
+<span class="sourceLineNo">020</span>import javax.annotation.concurrent.NotThreadSafe;<a name="line.20"></a>
+<span class="sourceLineNo">021</span><a name="line.21"></a>
+<span class="sourceLineNo">022</span>import restlib.data.CacheDirective;<a name="line.22"></a>
+<span class="sourceLineNo">023</span>import restlib.data.ChallengeMessage;<a name="line.23"></a>
+<span class="sourceLineNo">024</span>import restlib.data.Expectation;<a name="line.24"></a>
+<span class="sourceLineNo">025</span>import restlib.data.Header;<a name="line.25"></a>
+<span class="sourceLineNo">026</span>import restlib.data.HttpHeaders;<a name="line.26"></a>
+<span class="sourceLineNo">027</span>import restlib.data.Method;<a name="line.27"></a>
+<span class="sourceLineNo">028</span>import restlib.data.UserAgent;<a name="line.28"></a>
+<span class="sourceLineNo">029</span>import restlib.net.EmailAddress;<a name="line.29"></a>
+<span class="sourceLineNo">030</span>import restlib.net.Uri;<a name="line.30"></a>
+<span class="sourceLineNo">031</span><a name="line.31"></a>
+<span class="sourceLineNo">032</span>import com.google.common.base.Optional;<a name="line.32"></a>
+<span class="sourceLineNo">033</span>import com.google.common.base.Preconditions;<a name="line.33"></a>
+<span class="sourceLineNo">034</span>import com.google.common.collect.ImmutableListMultimap;<a name="line.34"></a>
+<span class="sourceLineNo">035</span>import com.google.common.collect.ImmutableSet;<a name="line.35"></a>
+<span class="sourceLineNo">036</span><a name="line.36"></a>
+<span class="sourceLineNo">037</span>/**<a name="line.37"></a>
+<span class="sourceLineNo">038</span> * A builder for generating {@code Request} instances. <a name="line.38"></a>
+<span class="sourceLineNo">039</span> * RequestBuilder instances can be reused; it is safe to call build() <a name="line.39"></a>
+<span class="sourceLineNo">040</span> * multiple times to build multiple {@code Request} instances.<a name="line.40"></a>
+<span class="sourceLineNo">041</span> */<a name="line.41"></a>
+<span class="sourceLineNo">042</span>@NotThreadSafe<a name="line.42"></a>
+<span class="sourceLineNo">043</span>public final class RequestBuilder {    <a name="line.43"></a>
+<span class="sourceLineNo">044</span>    Optional&lt;ChallengeMessage&gt; authorizationCredentials = Optional.absent();<a name="line.44"></a>
+<span class="sourceLineNo">045</span>    final ImmutableSet.Builder&lt;CacheDirective&gt; cacheDirectives = <a name="line.45"></a>
+<span class="sourceLineNo">046</span>            ImmutableSet.&lt;CacheDirective&gt; builder();<a name="line.46"></a>
+<span class="sourceLineNo">047</span>    ConnectionInfo connectionInfo = ConnectionInfo.NONE;<a name="line.47"></a>
+<span class="sourceLineNo">048</span>    ContentInfo contentInfo = ContentInfo.NONE;<a name="line.48"></a>
+<span class="sourceLineNo">049</span>    Optional&lt;Object&gt; entity = Optional.absent();<a name="line.49"></a>
+<span class="sourceLineNo">050</span>    final ImmutableSet.Builder&lt;Expectation&gt; expecations = <a name="line.50"></a>
+<span class="sourceLineNo">051</span>            ImmutableSet.&lt;Expectation&gt; builder();<a name="line.51"></a>
+<span class="sourceLineNo">052</span>    Optional&lt;EmailAddress&gt; from = Optional.absent();<a name="line.52"></a>
+<span class="sourceLineNo">053</span>    final ImmutableListMultimap.Builder&lt;Header, String&gt; headerMap = ImmutableListMultimap.builder();<a name="line.53"></a>
+<span class="sourceLineNo">054</span>    Optional&lt;Integer&gt; maxForwards = Optional.absent();<a name="line.54"></a>
+<span class="sourceLineNo">055</span>    Method method = Method.GET;<a name="line.55"></a>
+<span class="sourceLineNo">056</span>    final ImmutableSet.Builder&lt;CacheDirective&gt; pragmaCacheDirectives = ImmutableSet.builder();<a name="line.56"></a>
+<span class="sourceLineNo">057</span>    RequestPreconditions preconditions = RequestPreconditions.NONE;<a name="line.57"></a>
+<span class="sourceLineNo">058</span>    ClientPreferences preferences = ClientPreferences.NONE;<a name="line.58"></a>
+<span class="sourceLineNo">059</span>    Optional&lt;ChallengeMessage&gt; proxyAuthorizationCredentials = Optional.absent();<a name="line.59"></a>
+<span class="sourceLineNo">060</span>    Optional&lt;Uri&gt; referrer = Optional.absent();<a name="line.60"></a>
+<span class="sourceLineNo">061</span>    Optional&lt;Uri&gt; uri = Optional.absent();<a name="line.61"></a>
+<span class="sourceLineNo">062</span>    Optional&lt;UserAgent&gt; userAgent = Optional.absent();<a name="line.62"></a>
+<span class="sourceLineNo">063</span>    <a name="line.63"></a>
+<span class="sourceLineNo">064</span>    RequestBuilder(){}<a name="line.64"></a>
+<span class="sourceLineNo">065</span>    <a name="line.65"></a>
+<span class="sourceLineNo">066</span>    /**<a name="line.66"></a>
+<span class="sourceLineNo">067</span>     * Adds a {@code cacheDirective} to this builder's CacheDirective set.<a name="line.67"></a>
+<span class="sourceLineNo">068</span>     * @param cacheDirective the CacheDirective to add.<a name="line.68"></a>
+<span class="sourceLineNo">069</span>     * @return this {@code RequestBuilder} instance.<a name="line.69"></a>
+<span class="sourceLineNo">070</span>     * @throws NullPointerException if {@code cacheDirective} is null.<a name="line.70"></a>
+<span class="sourceLineNo">071</span>     */<a name="line.71"></a>
+<span class="sourceLineNo">072</span>    public RequestBuilder addCacheDirective(final CacheDirective cacheDirective) {<a name="line.72"></a>
+<span class="sourceLineNo">073</span>        this.cacheDirectives.add(cacheDirective);<a name="line.73"></a>
+<span class="sourceLineNo">074</span>        return this;<a name="line.74"></a>
+<span class="sourceLineNo">075</span>    }<a name="line.75"></a>
+<span class="sourceLineNo">076</span><a name="line.76"></a>
+<span class="sourceLineNo">077</span>    /**<a name="line.77"></a>
+<span class="sourceLineNo">078</span>     * Adds each {@code CacheDirective} to this builder's CacheDirectives set.<a name="line.78"></a>
+<span class="sourceLineNo">079</span>     * @param cacheDirectives the CacheDirectives to add.<a name="line.79"></a>
+<span class="sourceLineNo">080</span>     * @return this {@code RequestBuilder} instance.<a name="line.80"></a>
+<span class="sourceLineNo">081</span>     * @throws NullPointerException if {@code cacheDirectives} is null or contains a null element.<a name="line.81"></a>
+<span class="sourceLineNo">082</span>     */<a name="line.82"></a>
+<span class="sourceLineNo">083</span>    public RequestBuilder addCacheDirectives(<a name="line.83"></a>
+<span class="sourceLineNo">084</span>            final Iterable&lt;CacheDirective&gt; cacheDirectives) {<a name="line.84"></a>
+<span class="sourceLineNo">085</span>        this.cacheDirectives.addAll(cacheDirectives);<a name="line.85"></a>
+<span class="sourceLineNo">086</span>        return this;<a name="line.86"></a>
+<span class="sourceLineNo">087</span>    }<a name="line.87"></a>
+<span class="sourceLineNo">088</span>    <a name="line.88"></a>
+<span class="sourceLineNo">089</span>    /**<a name="line.89"></a>
+<span class="sourceLineNo">090</span>     * Adds a custom header value to this builder.<a name="line.90"></a>
+<span class="sourceLineNo">091</span>     * @param header a non-null non-standard header.<a name="line.91"></a>
+<span class="sourceLineNo">092</span>     * @param value a non-null valid header value.<a name="line.92"></a>
+<span class="sourceLineNo">093</span>     * @return this {@code RequestBuilder} instance.<a name="line.93"></a>
+<span class="sourceLineNo">094</span>     * @throws NullPointerException if header or value are null;<a name="line.94"></a>
+<span class="sourceLineNo">095</span>     * @throws IllegalArgumentException if {@code header} is a standard header value<a name="line.95"></a>
+<span class="sourceLineNo">096</span>     * or if value is not valid header value. <a name="line.96"></a>
+<span class="sourceLineNo">097</span>     */<a name="line.97"></a>
+<span class="sourceLineNo">098</span>    public RequestBuilder addCustomHeader(final Header header, final String value) {<a name="line.98"></a>
+<span class="sourceLineNo">099</span>        Preconditions.checkNotNull(header);<a name="line.99"></a>
+<span class="sourceLineNo">100</span>        Preconditions.checkNotNull(value);<a name="line.100"></a>
+<span class="sourceLineNo">101</span>        Preconditions.checkArgument(!HttpHeaders.isStandardHeader(header));<a name="line.101"></a>
+<span class="sourceLineNo">102</span>        // FIXME: Validate value is a valid field-value<a name="line.102"></a>
+<span class="sourceLineNo">103</span>        this.headerMap.put(header, value);<a name="line.103"></a>
+<span class="sourceLineNo">104</span>        return this;<a name="line.104"></a>
+<span class="sourceLineNo">105</span>    }<a name="line.105"></a>
+<span class="sourceLineNo">106</span>    <a name="line.106"></a>
+<span class="sourceLineNo">107</span>    /**<a name="line.107"></a>
+<span class="sourceLineNo">108</span>     * Adds a {@code expectation} to this builder's Expectation set.<a name="line.108"></a>
+<span class="sourceLineNo">109</span>     * @param expectation the Expectation to add.<a name="line.109"></a>
+<span class="sourceLineNo">110</span>     * @return this {@code RequestBuilder} instance.<a name="line.110"></a>
+<span class="sourceLineNo">111</span>     * @throws NullPointerException if {@code expectation} is null.<a name="line.111"></a>
+<span class="sourceLineNo">112</span>     */<a name="line.112"></a>
+<span class="sourceLineNo">113</span>    public RequestBuilder addExpectation(final Expectation expectation) {<a name="line.113"></a>
+<span class="sourceLineNo">114</span>        this.expecations.add(expectation);<a name="line.114"></a>
+<span class="sourceLineNo">115</span>        return this;<a name="line.115"></a>
+<span class="sourceLineNo">116</span>    }<a name="line.116"></a>
+<span class="sourceLineNo">117</span>    <a name="line.117"></a>
+<span class="sourceLineNo">118</span>    /**<a name="line.118"></a>
+<span class="sourceLineNo">119</span>     * Adds each {@code Expectation} to this builder's Expectations set.<a name="line.119"></a>
+<span class="sourceLineNo">120</span>     * @param expectations the Expectations to add.<a name="line.120"></a>
+<span class="sourceLineNo">121</span>     * @return this {@code RequestBuilder} instance.<a name="line.121"></a>
+<span class="sourceLineNo">122</span>     * @throws NullPointerException if {@code expectation} is null or contains a null element.<a name="line.122"></a>
+<span class="sourceLineNo">123</span>     */<a name="line.123"></a>
+<span class="sourceLineNo">124</span>    public RequestBuilder addExpectations(final Iterable&lt;Expectation&gt; expectations) {<a name="line.124"></a>
+<span class="sourceLineNo">125</span>        this.expecations.addAll(expectations);<a name="line.125"></a>
+<span class="sourceLineNo">126</span>        return this;<a name="line.126"></a>
+<span class="sourceLineNo">127</span>    }<a name="line.127"></a>
+<span class="sourceLineNo">128</span>    <a name="line.128"></a>
+<span class="sourceLineNo">129</span>    /**<a name="line.129"></a>
+<span class="sourceLineNo">130</span>     * Adds a {@code cacheDirective} to this builder's Pragma CacheDirective set.<a name="line.130"></a>
+<span class="sourceLineNo">131</span>     * @param cacheDirective the CacheDirective to add.<a name="line.131"></a>
+<span class="sourceLineNo">132</span>     * @return this {@code RequestBuilder} instance.<a name="line.132"></a>
+<span class="sourceLineNo">133</span>     * @throws NullPointerException if {@code cacheDirective} is null.<a name="line.133"></a>
+<span class="sourceLineNo">134</span>     */<a name="line.134"></a>
+<span class="sourceLineNo">135</span>    public RequestBuilder addPragmaCacheDirective(final CacheDirective cacheDirective) {<a name="line.135"></a>
+<span class="sourceLineNo">136</span>        this.pragmaCacheDirectives.add(cacheDirective);<a name="line.136"></a>
+<span class="sourceLineNo">137</span>        return this;<a name="line.137"></a>
+<span class="sourceLineNo">138</span>    }<a name="line.138"></a>
+<span class="sourceLineNo">139</span>    <a name="line.139"></a>
+<span class="sourceLineNo">140</span>    /**<a name="line.140"></a>
+<span class="sourceLineNo">141</span>     * Adds each {@code CacheDirective} to this builder's Pragma CacheDirective set.<a name="line.141"></a>
+<span class="sourceLineNo">142</span>     * @param cacheDirectives the CacheDirectives to add.<a name="line.142"></a>
+<span class="sourceLineNo">143</span>     * @return this {@code RequestBuilder} instance.<a name="line.143"></a>
+<span class="sourceLineNo">144</span>     * @throws NullPointerException if {@code cacheDirectives} is null or contains a null element.<a name="line.144"></a>
+<span class="sourceLineNo">145</span>     */<a name="line.145"></a>
+<span class="sourceLineNo">146</span>    public RequestBuilder addPragmaCacheDirectives(final Iterable&lt;CacheDirective&gt; cacheDirectives) {<a name="line.146"></a>
+<span class="sourceLineNo">147</span>        this.pragmaCacheDirectives.addAll(cacheDirectives);<a name="line.147"></a>
+<span class="sourceLineNo">148</span>        return this;<a name="line.148"></a>
+<span class="sourceLineNo">149</span>    }<a name="line.149"></a>
+<span class="sourceLineNo">150</span>    <a name="line.150"></a>
+<span class="sourceLineNo">151</span>    /** <a name="line.151"></a>
+<span class="sourceLineNo">152</span>     * Returns a newly-created {@code Request} instance based <a name="line.152"></a>
+<span class="sourceLineNo">153</span>     * on the contents of the RequestBuilder.<a name="line.153"></a>
+<span class="sourceLineNo">154</span>     */<a name="line.154"></a>
+<span class="sourceLineNo">155</span>    public Request build() {<a name="line.155"></a>
+<span class="sourceLineNo">156</span>        final Request retval = new RequestImpl(this);<a name="line.156"></a>
+<span class="sourceLineNo">157</span>        return retval;<a name="line.157"></a>
+<span class="sourceLineNo">158</span>    }<a name="line.158"></a>
+<span class="sourceLineNo">159</span>    <a name="line.159"></a>
+<span class="sourceLineNo">160</span>    /**<a name="line.160"></a>
+<span class="sourceLineNo">161</span>     * Sets this builder's authorization credentials.<a name="line.161"></a>
+<span class="sourceLineNo">162</span>     * @param credentials a non-null <a name="line.162"></a>
+<span class="sourceLineNo">163</span>     * @return this {@code RequestBuilder} instance.<a name="line.163"></a>
+<span class="sourceLineNo">164</span>     * @throws NullPointerException if {@code credentials} is null.<a name="line.164"></a>
+<span class="sourceLineNo">165</span>     */<a name="line.165"></a>
+<span class="sourceLineNo">166</span>    public RequestBuilder setAuthorizationCredentials(<a name="line.166"></a>
+<span class="sourceLineNo">167</span>            final ChallengeMessage credentials) {<a name="line.167"></a>
+<span class="sourceLineNo">168</span>        this.authorizationCredentials = Optional.of(credentials);<a name="line.168"></a>
+<span class="sourceLineNo">169</span>        return this;<a name="line.169"></a>
+<span class="sourceLineNo">170</span>    }<a name="line.170"></a>
+<span class="sourceLineNo">171</span>    <a name="line.171"></a>
+<span class="sourceLineNo">172</span>    /**<a name="line.172"></a>
+<span class="sourceLineNo">173</span>     * Sets this builder's connection info.<a name="line.173"></a>
+<span class="sourceLineNo">174</span>     * @param connectionInfo a non-null {@code ConnectionInfo} instance.<a name="line.174"></a>
+<span class="sourceLineNo">175</span>     * @return this {@code RequestBuilder} instance.<a name="line.175"></a>
+<span class="sourceLineNo">176</span>     * @throws NullPointerException if {@code connectionInfo} is null.<a name="line.176"></a>
+<span class="sourceLineNo">177</span>     */<a name="line.177"></a>
+<span class="sourceLineNo">178</span>    public RequestBuilder setConnectionInfo(final ConnectionInfo connectionInfo) {<a name="line.178"></a>
+<span class="sourceLineNo">179</span>        Preconditions.checkNotNull(connectionInfo);<a name="line.179"></a>
+<span class="sourceLineNo">180</span>        this.connectionInfo = connectionInfo;<a name="line.180"></a>
+<span class="sourceLineNo">181</span>        return this;<a name="line.181"></a>
+<span class="sourceLineNo">182</span>    }<a name="line.182"></a>
+<span class="sourceLineNo">183</span>    <a name="line.183"></a>
+<span class="sourceLineNo">184</span>    /**<a name="line.184"></a>
+<span class="sourceLineNo">185</span>     * Sets this builder's content info.<a name="line.185"></a>
+<span class="sourceLineNo">186</span>     * @param contentInfo a non null {@code ContentInfo} instance.<a name="line.186"></a>
+<span class="sourceLineNo">187</span>     * @return this {@code RequestBuilder} instance.<a name="line.187"></a>
+<span class="sourceLineNo">188</span>     * @throws NullPointerException if {@code contentInfo} is null.<a name="line.188"></a>
+<span class="sourceLineNo">189</span>     */<a name="line.189"></a>
+<span class="sourceLineNo">190</span>    public RequestBuilder setContentInfo(final ContentInfo contentInfo) {<a name="line.190"></a>
+<span class="sourceLineNo">191</span>        Preconditions.checkNotNull(contentInfo);<a name="line.191"></a>
+<span class="sourceLineNo">192</span>        this.contentInfo = contentInfo;<a name="line.192"></a>
+<span class="sourceLineNo">193</span>        return this;<a name="line.193"></a>
+<span class="sourceLineNo">194</span>    }<a name="line.194"></a>
+<span class="sourceLineNo">195</span>    <a name="line.195"></a>
+<span class="sourceLineNo">196</span>    /**<a name="line.196"></a>
+<span class="sourceLineNo">197</span>     * Sets this builder's entity {@code Object}.<a name="line.197"></a>
+<span class="sourceLineNo">198</span>     * @param entity a non-null {@code Object}.<a name="line.198"></a>
+<span class="sourceLineNo">199</span>     * @return this {@code RequestBuilder} instance.<a name="line.199"></a>
+<span class="sourceLineNo">200</span>     * @throws NullPointerException if {@code entity} is null.<a name="line.200"></a>
+<span class="sourceLineNo">201</span>     */<a name="line.201"></a>
+<span class="sourceLineNo">202</span>    public RequestBuilder setEntity(final Object entity){<a name="line.202"></a>
+<span class="sourceLineNo">203</span>        this.entity = Optional.of(entity);<a name="line.203"></a>
+<span class="sourceLineNo">204</span>        return this;<a name="line.204"></a>
+<span class="sourceLineNo">205</span>    }<a name="line.205"></a>
+<span class="sourceLineNo">206</span>    <a name="line.206"></a>
+<span class="sourceLineNo">207</span>    /**<a name="line.207"></a>
+<span class="sourceLineNo">208</span>     * Sets this builder Request sender's email address.<a name="line.208"></a>
+<span class="sourceLineNo">209</span>     * @param from a non-null EmailAddress<a name="line.209"></a>
+<span class="sourceLineNo">210</span>     * @return this {@code RequestBuilder} instance.<a name="line.210"></a>
+<span class="sourceLineNo">211</span>     * @throws NullPointerException if {@code from} is null.<a name="line.211"></a>
+<span class="sourceLineNo">212</span>     */<a name="line.212"></a>
+<span class="sourceLineNo">213</span>    public RequestBuilder setFrom(final EmailAddress from) {<a name="line.213"></a>
+<span class="sourceLineNo">214</span>        Preconditions.checkNotNull(from);<a name="line.214"></a>
+<span class="sourceLineNo">215</span>        this.from = Optional.of(from);<a name="line.215"></a>
+<span class="sourceLineNo">216</span>        return this;<a name="line.216"></a>
+<span class="sourceLineNo">217</span>    }<a name="line.217"></a>
+<span class="sourceLineNo">218</span>    <a name="line.218"></a>
+<span class="sourceLineNo">219</span>    /**<a name="line.219"></a>
+<span class="sourceLineNo">220</span>     * Sets the maximum number of hops a request produced by this builder can be forwarded.<a name="line.220"></a>
+<span class="sourceLineNo">221</span>     * @param maxForwards<a name="line.221"></a>
+<span class="sourceLineNo">222</span>     * @return this {@code RequestBuilder} instance.<a name="line.222"></a>
+<span class="sourceLineNo">223</span>     * @throws IllegalArgumentException if {@code maxForwards} is not a positive integer or 0.<a name="line.223"></a>
+<span class="sourceLineNo">224</span>     */<a name="line.224"></a>
+<span class="sourceLineNo">225</span>    public RequestBuilder setMaxForwards(final int maxForwards) {<a name="line.225"></a>
+<span class="sourceLineNo">226</span>        Preconditions.checkArgument(maxForwards &gt;= 0);<a name="line.226"></a>
+<span class="sourceLineNo">227</span>        this.maxForwards = Optional.of(maxForwards);<a name="line.227"></a>
+<span class="sourceLineNo">228</span>        return this;<a name="line.228"></a>
+<span class="sourceLineNo">229</span>    }<a name="line.229"></a>
+<span class="sourceLineNo">230</span>    <a name="line.230"></a>
+<span class="sourceLineNo">231</span>    /**<a name="line.231"></a>
+<span class="sourceLineNo">232</span>     * Sets this builder's {@code Method}.<a name="line.232"></a>
+<span class="sourceLineNo">233</span>     * @param method a non-null Method.<a name="line.233"></a>
+<span class="sourceLineNo">234</span>     * @return this {@code RequestBuilder} instance.<a name="line.234"></a>
+<span class="sourceLineNo">235</span>     * @throws NullPointerException if {@code method} is null.<a name="line.235"></a>
+<span class="sourceLineNo">236</span>     */<a name="line.236"></a>
+<span class="sourceLineNo">237</span>    public RequestBuilder setMethod(final Method method) {<a name="line.237"></a>
+<span class="sourceLineNo">238</span>        Preconditions.checkNotNull(method);<a name="line.238"></a>
+<span class="sourceLineNo">239</span>        this.method = method;<a name="line.239"></a>
+<span class="sourceLineNo">240</span>        return this;<a name="line.240"></a>
+<span class="sourceLineNo">241</span>    }<a name="line.241"></a>
+<span class="sourceLineNo">242</span>    <a name="line.242"></a>
+<span class="sourceLineNo">243</span>    /**<a name="line.243"></a>
+<span class="sourceLineNo">244</span>     * Sets this builder's {@code RequestPreconditions}.<a name="line.244"></a>
+<span class="sourceLineNo">245</span>     * @param preconditions a non-null RequestPreconditions.<a name="line.245"></a>
+<span class="sourceLineNo">246</span>     * @return this {@code RequestBuilder} instance.<a name="line.246"></a>
+<span class="sourceLineNo">247</span>     * @throws NullPointerException if {@code preconditions} is null.<a name="line.247"></a>
+<span class="sourceLineNo">248</span>     */<a name="line.248"></a>
+<span class="sourceLineNo">249</span>    public RequestBuilder setPreconditions(final RequestPreconditions preconditions) {<a name="line.249"></a>
+<span class="sourceLineNo">250</span>        Preconditions.checkNotNull(preconditions);<a name="line.250"></a>
+<span class="sourceLineNo">251</span>        this.preconditions = preconditions;<a name="line.251"></a>
+<span class="sourceLineNo">252</span>        return this;<a name="line.252"></a>
+<span class="sourceLineNo">253</span>    }<a name="line.253"></a>
+<span class="sourceLineNo">254</span>    <a name="line.254"></a>
+<span class="sourceLineNo">255</span>    /**<a name="line.255"></a>
+<span class="sourceLineNo">256</span>     * Sets this builder's {@code ClientPreferences}.<a name="line.256"></a>
+<span class="sourceLineNo">257</span>     * @param preferences a non-null ClientPreferences.<a name="line.257"></a>
+<span class="sourceLineNo">258</span>     * @return this {@code RequestBuilder} instance.<a name="line.258"></a>
+<span class="sourceLineNo">259</span>     * @throws NullPointerException if {@code preferences} is null.<a name="line.259"></a>
+<span class="sourceLineNo">260</span>     */<a name="line.260"></a>
+<span class="sourceLineNo">261</span>    public RequestBuilder setPreferences(final ClientPreferences preferences) {<a name="line.261"></a>
+<span class="sourceLineNo">262</span>        Preconditions.checkNotNull(preferences);<a name="line.262"></a>
+<span class="sourceLineNo">263</span>        this.preferences = preferences;<a name="line.263"></a>
+<span class="sourceLineNo">264</span>        return this;<a name="line.264"></a>
+<span class="sourceLineNo">265</span>    }<a name="line.265"></a>
+<span class="sourceLineNo">266</span>    <a name="line.266"></a>
+<span class="sourceLineNo">267</span>    /**<a name="line.267"></a>
+<span class="sourceLineNo">268</span>     * Sets this builder's proxy authorization credentials.<a name="line.268"></a>
+<span class="sourceLineNo">269</span>     * @param credentials a non-null <a name="line.269"></a>
+<span class="sourceLineNo">270</span>     * @return this {@code RequestBuilder} instance.<a name="line.270"></a>
+<span class="sourceLineNo">271</span>     * @throws NullPointerException if {@code credentials} is null.<a name="line.271"></a>
+<span class="sourceLineNo">272</span>     */<a name="line.272"></a>
+<span class="sourceLineNo">273</span>    public RequestBuilder setProxyAuthorizationCredentials(final ChallengeMessage credentials){<a name="line.273"></a>
+<span class="sourceLineNo">274</span>        this.proxyAuthorizationCredentials = Optional.of(credentials);<a name="line.274"></a>
+<span class="sourceLineNo">275</span>        return this;<a name="line.275"></a>
+<span class="sourceLineNo">276</span>    }<a name="line.276"></a>
+<span class="sourceLineNo">277</span>    <a name="line.277"></a>
+<span class="sourceLineNo">278</span>    /**<a name="line.278"></a>
+<span class="sourceLineNo">279</span>     * Sets this builder's referrer.<a name="line.279"></a>
+<span class="sourceLineNo">280</span>     * @param referrer a non-null uri.<a name="line.280"></a>
+<span class="sourceLineNo">281</span>     * @return this {@code RequestBuilder} instance.<a name="line.281"></a>
+<span class="sourceLineNo">282</span>     * @throws NullPointerException if {@code referrer} is null.<a name="line.282"></a>
+<span class="sourceLineNo">283</span>     */<a name="line.283"></a>
+<span class="sourceLineNo">284</span>    public RequestBuilder setReferrer(final Uri referrer) {<a name="line.284"></a>
+<span class="sourceLineNo">285</span>        Preconditions.checkNotNull(referrer);<a name="line.285"></a>
+<span class="sourceLineNo">286</span>        if (!referrer.toString().isEmpty()) {<a name="line.286"></a>
+<span class="sourceLineNo">287</span>            this.referrer = Optional.of(referrer);<a name="line.287"></a>
+<span class="sourceLineNo">288</span>        }<a name="line.288"></a>
+<span class="sourceLineNo">289</span>        return this;<a name="line.289"></a>
+<span class="sourceLineNo">290</span>    }<a name="line.290"></a>
+<span class="sourceLineNo">291</span>    <a name="line.291"></a>
+<span class="sourceLineNo">292</span>    /**<a name="line.292"></a>
+<span class="sourceLineNo">293</span>     * Sets this builder's URI.<a name="line.293"></a>
+<span class="sourceLineNo">294</span>     * @param uri a non-null absolute URI.<a name="line.294"></a>
+<span class="sourceLineNo">295</span>     * @return this {@code RequestBuilder} instance.<a name="line.295"></a>
+<span class="sourceLineNo">296</span>     * @throws NullPointerException if {@code uri} is null.<a name="line.296"></a>
+<span class="sourceLineNo">297</span>     * @throws IllegalArgumentException if {@code uri} is not absolute.<a name="line.297"></a>
+<span class="sourceLineNo">298</span>     */<a name="line.298"></a>
+<span class="sourceLineNo">299</span>    public RequestBuilder setUri(final Uri uri) {<a name="line.299"></a>
+<span class="sourceLineNo">300</span>        Preconditions.checkNotNull(uri);<a name="line.300"></a>
+<span class="sourceLineNo">301</span>        Preconditions.checkArgument(uri.isAbsolute());<a name="line.301"></a>
+<span class="sourceLineNo">302</span>        this.uri = Optional.of(uri);<a name="line.302"></a>
+<span class="sourceLineNo">303</span>        return this;<a name="line.303"></a>
+<span class="sourceLineNo">304</span>    }<a name="line.304"></a>
+<span class="sourceLineNo">305</span><a name="line.305"></a>
+<span class="sourceLineNo">306</span>    /**<a name="line.306"></a>
+<span class="sourceLineNo">307</span>     * Sets this builder's UserAgent.<a name="line.307"></a>
+<span class="sourceLineNo">308</span>     * @param userAgent a non-null {@code UserAgent}.<a name="line.308"></a>
+<span class="sourceLineNo">309</span>     * @return this {@code RequestBuilder} instance.<a name="line.309"></a>
+<span class="sourceLineNo">310</span>     * @throws NullPointerException if {@code userAgent} is null.<a name="line.310"></a>
+<span class="sourceLineNo">311</span>     */<a name="line.311"></a>
+<span class="sourceLineNo">312</span>    public RequestBuilder setUserAgent(final UserAgent userAgent) {<a name="line.312"></a>
+<span class="sourceLineNo">313</span>        this.userAgent = Optional.of(userAgent);<a name="line.313"></a>
+<span class="sourceLineNo">314</span>        return this;<a name="line.314"></a>
+<span class="sourceLineNo">315</span>    }<a name="line.315"></a>
+<span class="sourceLineNo">316</span>}<a name="line.316"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>

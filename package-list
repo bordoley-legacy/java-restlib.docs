@@ -1,0 +1,15 @@
+restlib
+restlib.bio
+restlib.bio.multipart
+restlib.data
+restlib.ext.freemarker
+restlib.ext.jackson
+restlib.ext.protobuf
+restlib.ext.servlet
+restlib.impl
+restlib.net
+restlib.serializable.atom
+restlib.serializable.opensearch
+restlib.server
+restlib.server.bio
+restlib.server.connector

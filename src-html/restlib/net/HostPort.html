@@ -1,0 +1,209 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+<head>
+<title>Source code</title>
+<link rel="stylesheet" type="text/css" href="../../../stylesheet.css" title="Style">
+</head>
+<body>
+<div class="sourceContainer">
+<pre><span class="sourceLineNo">001</span>package restlib.net;<a name="line.1"></a>
+<span class="sourceLineNo">002</span><a name="line.2"></a>
+<span class="sourceLineNo">003</span>import java.net.IDN;<a name="line.3"></a>
+<span class="sourceLineNo">004</span>import java.net.InetAddress;<a name="line.4"></a>
+<span class="sourceLineNo">005</span>import java.util.List;<a name="line.5"></a>
+<span class="sourceLineNo">006</span><a name="line.6"></a>
+<span class="sourceLineNo">007</span>import javax.annotation.Nullable;<a name="line.7"></a>
+<span class="sourceLineNo">008</span>import javax.annotation.concurrent.Immutable;<a name="line.8"></a>
+<span class="sourceLineNo">009</span><a name="line.9"></a>
+<span class="sourceLineNo">010</span>import restlib.impl.CommonParsers;<a name="line.10"></a>
+<span class="sourceLineNo">011</span><a name="line.11"></a>
+<span class="sourceLineNo">012</span>import com.google.common.base.Objects;<a name="line.12"></a>
+<span class="sourceLineNo">013</span>import com.google.common.base.Optional;<a name="line.13"></a>
+<span class="sourceLineNo">014</span>import com.google.common.base.Preconditions;<a name="line.14"></a>
+<span class="sourceLineNo">015</span>import com.google.common.net.InetAddresses;<a name="line.15"></a>
+<span class="sourceLineNo">016</span>import com.google.common.net.InternetDomainName;<a name="line.16"></a>
+<span class="sourceLineNo">017</span><a name="line.17"></a>
+<span class="sourceLineNo">018</span>/**<a name="line.18"></a>
+<span class="sourceLineNo">019</span> * An immutable representation of a host and port.<a name="line.19"></a>
+<span class="sourceLineNo">020</span> */<a name="line.20"></a>
+<span class="sourceLineNo">021</span>@Immutable<a name="line.21"></a>
+<span class="sourceLineNo">022</span>public final class HostPort {    <a name="line.22"></a>
+<span class="sourceLineNo">023</span>    private static HostPort create(final InetAddress host, final int port) {<a name="line.23"></a>
+<span class="sourceLineNo">024</span>        Preconditions.checkNotNull(host);        <a name="line.24"></a>
+<span class="sourceLineNo">025</span>        return new HostPort(InetAddresses.toUriString(host), getPort(port));<a name="line.25"></a>
+<span class="sourceLineNo">026</span>    }<a name="line.26"></a>
+<span class="sourceLineNo">027</span>    <a name="line.27"></a>
+<span class="sourceLineNo">028</span>    private static HostPort create(final InternetDomainName host, final int port) {<a name="line.28"></a>
+<span class="sourceLineNo">029</span>        Preconditions.checkNotNull(host);       <a name="line.29"></a>
+<span class="sourceLineNo">030</span>        return new HostPort(IDN.toASCII(host.name()), getPort(port));<a name="line.30"></a>
+<span class="sourceLineNo">031</span>    }<a name="line.31"></a>
+<span class="sourceLineNo">032</span>    <a name="line.32"></a>
+<span class="sourceLineNo">033</span>    /**<a name="line.33"></a>
+<span class="sourceLineNo">034</span>     * Constructs a HostPort instance from its component parts.<a name="line.34"></a>
+<span class="sourceLineNo">035</span>     * @param host a valid domain name, IPv4 address or IPv6 address uri-host.<a name="line.35"></a>
+<span class="sourceLineNo">036</span>     * @param port a valid TCP port number or -1 to indicate no port.<a name="line.36"></a>
+<span class="sourceLineNo">037</span>     * @throws NullPointerException if host is null.<a name="line.37"></a>
+<span class="sourceLineNo">038</span>     * @throws IllegalArgumentException if host is not valid uri-host. Also if port<a name="line.38"></a>
+<span class="sourceLineNo">039</span>     * is not a valid TCP port or -1.<a name="line.39"></a>
+<span class="sourceLineNo">040</span>     */<a name="line.40"></a>
+<span class="sourceLineNo">041</span>    public static HostPort create(final String host, final int port) {<a name="line.41"></a>
+<span class="sourceLineNo">042</span>        Preconditions.checkNotNull(host);<a name="line.42"></a>
+<span class="sourceLineNo">043</span>        Preconditions.checkArgument(!host.isEmpty());<a name="line.43"></a>
+<span class="sourceLineNo">044</span>        Preconditions.checkArgument(IRIPredicates.IS_URI_CHARS.apply(host));<a name="line.44"></a>
+<span class="sourceLineNo">045</span>        <a name="line.45"></a>
+<span class="sourceLineNo">046</span>        try {<a name="line.46"></a>
+<span class="sourceLineNo">047</span>            return HostPort.create(InternetDomainName.from(host), port);<a name="line.47"></a>
+<span class="sourceLineNo">048</span>        } catch (final IllegalArgumentException e) {}<a name="line.48"></a>
+<span class="sourceLineNo">049</span>        <a name="line.49"></a>
+<span class="sourceLineNo">050</span>        try {        <a name="line.50"></a>
+<span class="sourceLineNo">051</span>            return HostPort.create(InetAddresses.forUriString(host), port);<a name="line.51"></a>
+<span class="sourceLineNo">052</span>        } catch (final IllegalArgumentException e) {               <a name="line.52"></a>
+<span class="sourceLineNo">053</span>        }<a name="line.53"></a>
+<span class="sourceLineNo">054</span><a name="line.54"></a>
+<span class="sourceLineNo">055</span>        throw new IllegalArgumentException("Invalid host specifier: " + host);<a name="line.55"></a>
+<span class="sourceLineNo">056</span>    }<a name="line.56"></a>
+<span class="sourceLineNo">057</span>    <a name="line.57"></a>
+<span class="sourceLineNo">058</span>    private static Optional&lt;Integer&gt; getPort(final int port) {<a name="line.58"></a>
+<span class="sourceLineNo">059</span>        Preconditions.checkArgument((port == -1) || ((port &gt; 0) &amp;&amp; (port &lt;  65536)));<a name="line.59"></a>
+<span class="sourceLineNo">060</span>        if (port &gt; 0) {<a name="line.60"></a>
+<span class="sourceLineNo">061</span>            return Optional.of(port);<a name="line.61"></a>
+<span class="sourceLineNo">062</span>        } else {<a name="line.62"></a>
+<span class="sourceLineNo">063</span>            return Optional.absent();<a name="line.63"></a>
+<span class="sourceLineNo">064</span>        }<a name="line.64"></a>
+<span class="sourceLineNo">065</span>    }<a name="line.65"></a>
+<span class="sourceLineNo">066</span>    <a name="line.66"></a>
+<span class="sourceLineNo">067</span>    /**<a name="line.67"></a>
+<span class="sourceLineNo">068</span>     * Returns a HostPort including only a host component.<a name="line.68"></a>
+<span class="sourceLineNo">069</span>     * @param host a valid domain name, IPv4 address or IPv6 address uri-host.<a name="line.69"></a>
+<span class="sourceLineNo">070</span>     * @throws NullPointerException if host is null.<a name="line.70"></a>
+<span class="sourceLineNo">071</span>     * @throws IllegalArgumentException if host is not valid uri-host.<a name="line.71"></a>
+<span class="sourceLineNo">072</span>     */<a name="line.72"></a>
+<span class="sourceLineNo">073</span>    public static HostPort hostOnly(final String host) {<a name="line.73"></a>
+<span class="sourceLineNo">074</span>        return create(host, -1);<a name="line.74"></a>
+<span class="sourceLineNo">075</span>    }<a name="line.75"></a>
+<span class="sourceLineNo">076</span>    <a name="line.76"></a>
+<span class="sourceLineNo">077</span>    /**<a name="line.77"></a>
+<span class="sourceLineNo">078</span>     * Parses a {@code HostPort} from its {@code String} representation.<a name="line.78"></a>
+<span class="sourceLineNo">079</span>     * @throws NullPointerException if {@code hostPort} is null.<a name="line.79"></a>
+<span class="sourceLineNo">080</span>     * @throws IllegalArgumentException {@code hostPort} is not parseable or <a name="line.80"></a>
+<span class="sourceLineNo">081</span>     * is the empty String.<a name="line.81"></a>
+<span class="sourceLineNo">082</span>     */<a name="line.82"></a>
+<span class="sourceLineNo">083</span>    public static HostPort parse(final CharSequence hostPort) {<a name="line.83"></a>
+<span class="sourceLineNo">084</span>        Preconditions.checkNotNull(hostPort);<a name="line.84"></a>
+<span class="sourceLineNo">085</span>        <a name="line.85"></a>
+<span class="sourceLineNo">086</span>        final List&lt;String&gt; parts = NetParserImpl.parseAuthority(hostPort);<a name="line.86"></a>
+<span class="sourceLineNo">087</span>        Preconditions.checkArgument(parts.get(0).isEmpty());      <a name="line.87"></a>
+<span class="sourceLineNo">088</span>        <a name="line.88"></a>
+<span class="sourceLineNo">089</span>        return create(parts.get(1), <a name="line.89"></a>
+<span class="sourceLineNo">090</span>                parts.get(2).isEmpty() ? -1 : CommonParsers.parseUnsignedInteger(parts.get(2)));<a name="line.90"></a>
+<span class="sourceLineNo">091</span>    }<a name="line.91"></a>
+<span class="sourceLineNo">092</span>    <a name="line.92"></a>
+<span class="sourceLineNo">093</span>    private final String host;<a name="line.93"></a>
+<span class="sourceLineNo">094</span>    private final Optional&lt;Integer&gt; port;<a name="line.94"></a>
+<span class="sourceLineNo">095</span>    <a name="line.95"></a>
+<span class="sourceLineNo">096</span>    private HostPort(final String host, final Optional&lt;Integer&gt; port) {<a name="line.96"></a>
+<span class="sourceLineNo">097</span>        this.host = host;<a name="line.97"></a>
+<span class="sourceLineNo">098</span>        this.port = port; <a name="line.98"></a>
+<span class="sourceLineNo">099</span>    }<a name="line.99"></a>
+<span class="sourceLineNo">100</span><a name="line.100"></a>
+<span class="sourceLineNo">101</span>    @Override<a name="line.101"></a>
+<span class="sourceLineNo">102</span>    public boolean equals(@Nullable final Object obj) {<a name="line.102"></a>
+<span class="sourceLineNo">103</span>        if (this == obj) {<a name="line.103"></a>
+<span class="sourceLineNo">104</span>            return true;<a name="line.104"></a>
+<span class="sourceLineNo">105</span>        } else if (obj instanceof HostPort) {<a name="line.105"></a>
+<span class="sourceLineNo">106</span>            final HostPort that = (HostPort) obj;<a name="line.106"></a>
+<span class="sourceLineNo">107</span>            return this.host.equals(that.host) &amp;&amp;<a name="line.107"></a>
+<span class="sourceLineNo">108</span>                    (this.port.equals(that.port));<a name="line.108"></a>
+<span class="sourceLineNo">109</span>        }<a name="line.109"></a>
+<span class="sourceLineNo">110</span>        return false;<a name="line.110"></a>
+<span class="sourceLineNo">111</span>    }<a name="line.111"></a>
+<span class="sourceLineNo">112</span>    <a name="line.112"></a>
+<span class="sourceLineNo">113</span>    @Override<a name="line.113"></a>
+<span class="sourceLineNo">114</span>    public int hashCode() {<a name="line.114"></a>
+<span class="sourceLineNo">115</span>        return Objects.hashCode(this.host, this.port);<a name="line.115"></a>
+<span class="sourceLineNo">116</span>    }<a name="line.116"></a>
+<span class="sourceLineNo">117</span>    <a name="line.117"></a>
+<span class="sourceLineNo">118</span>    /**<a name="line.118"></a>
+<span class="sourceLineNo">119</span>     * Returns the portion of this HostPort instance that should <a name="line.119"></a>
+<span class="sourceLineNo">120</span>     * represent the hostname or IPv4/IPv6 literal.<a name="line.120"></a>
+<span class="sourceLineNo">121</span>     */<a name="line.121"></a>
+<span class="sourceLineNo">122</span>    public String host() {<a name="line.122"></a>
+<span class="sourceLineNo">123</span>        return host;<a name="line.123"></a>
+<span class="sourceLineNo">124</span>    }<a name="line.124"></a>
+<span class="sourceLineNo">125</span>    <a name="line.125"></a>
+<span class="sourceLineNo">126</span>    /**<a name="line.126"></a>
+<span class="sourceLineNo">127</span>     * Returns the port number if present<a name="line.127"></a>
+<span class="sourceLineNo">128</span>     */<a name="line.128"></a>
+<span class="sourceLineNo">129</span>    public Optional&lt;Integer&gt; port() {<a name="line.129"></a>
+<span class="sourceLineNo">130</span>        return port;<a name="line.130"></a>
+<span class="sourceLineNo">131</span>    }<a name="line.131"></a>
+<span class="sourceLineNo">132</span><a name="line.132"></a>
+<span class="sourceLineNo">133</span>    @Override<a name="line.133"></a>
+<span class="sourceLineNo">134</span>    public String toString() {<a name="line.134"></a>
+<span class="sourceLineNo">135</span>        return host + (port.isPresent() ? ":" + port.get() : "");<a name="line.135"></a>
+<span class="sourceLineNo">136</span>    }   <a name="line.136"></a>
+<span class="sourceLineNo">137</span>}<a name="line.137"></a>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre>
+</div>
+</body>
+</html>
